@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Мой автомобиль</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Кабинет водителя</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <div class="sidebar-nav-section-title">Основное</div>
+          <a href="/driver" class="sidebar-link">
+            <span>Мои маршруты</span>
+          </a>
+          <a href="/driver/vehicle" class="sidebar-link sidebar-link--active">
+            <span>Мой автомобиль</span>
+            <span>●</span>
+          </a>
+          <a href="/driver/maintenance" class="sidebar-link">
+            <span>Обслуживание и топливо</span>
+          </a>
+          <a href="/driver/navigation" class="sidebar-link">
+            <span>Навигация</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">ВД</div>
+          <div>
+            <div style="font-size:0.85rem;">Иван Петров</div>
+            <div style="font-size:0.75rem;opacity:0.75;">Водитель</div>
+          </div>
+        </div>
+        <a id="logout-link" href="/index.html" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Мой автомобиль</h1>
+          <p class="main-subtitle">
+            Подробная информация о закреплённом транспортном средстве.
+          </p>
+        </div>
+        <div class="main-header-right">
+          <button class="btn btn--ghost" id="refresh-btn" type="button">Обновить данные</button>
+          <span class="tag-role">Водитель</span>
+        </div>
+      </header>
+
+      <section class="main-grid">
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Паспорт транспортного средства</div>
+                <div class="card-subtitle">Данные из базы</div>
+              </div>
+              <span class="chip">Закреплено за вами</span>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field">
+                <span class="form-label">Марка</span>
+                <div id="vehicle-brand" class="text-strong">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Модель</span>
+                <div id="vehicle-model" class="text-strong">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Регистрационный номер</span>
+                <div id="vehicle-reg" class="text-strong">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Прикреплено с</span>
+                <div id="vehicle-assigned" class="text-muted">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Накопленный пробег</span>
+                <div id="vehicle-total" class="text-strong">—</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Статус и использование</div>
+                <div class="card-subtitle">Динамика по маршрутам и обслуживанию</div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field">
+                <span class="form-label">Статус</span>
+                <span id="status-badge" class="status">—</span>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Следующее ТО (оценка)</span>
+                <div id="next-service">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Средний дневной пробег (30 дн.)</span>
+                <div id="avg-daily">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Средний месячный пробег (30 дн.)</span>
+                <div id="avg-monthly">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Рейсов за 30 дней</span>
+                <div id="trips-30">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Последнее обслуживание</span>
+                <div id="last-maintenance">—</div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Последние обслуживания</div>
+                <div class="card-subtitle">Данные Maintenance</div>
+              </div>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Тип работ</th>
+                  <th>Стоимость</th>
+                </tr>
+              </thead>
+              <tbody id="maintenance-body">
+                <tr>
+                  <td colspan="3" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+            <div id="maintenance-status" class="text-muted" style="margin-top:0.5rem;"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logoutAndRedirect = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/index.html';
+      };
+
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          logoutAndRedirect();
+        });
+      }
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logoutAndRedirect();
+          return;
+        }
+        setTimeout(logoutAndRedirect, timeout);
+      }
+
+      const el = (id) => document.getElementById(id);
+      const vehicleBrand = el('vehicle-brand');
+      const vehicleModel = el('vehicle-model');
+      const vehicleReg = el('vehicle-reg');
+      const vehicleAssigned = el('vehicle-assigned');
+      const vehicleTotal = el('vehicle-total');
+      const statusBadge = el('status-badge');
+      const nextService = el('next-service');
+      const avgDaily = el('avg-daily');
+      const avgMonthly = el('avg-monthly');
+      const trips30 = el('trips-30');
+      const lastMaintenance = el('last-maintenance');
+      const maintenanceBody = el('maintenance-body');
+      const maintenanceStatus = el('maintenance-status');
+      const refreshBtn = document.getElementById('refresh-btn');
+
+      const formatDate = (iso) => {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}.${month}.${year}`;
+      };
+
+      const formatMoney = (value) => {
+        if (value === null || value === undefined || Number.isNaN(value)) {
+          return '—';
+        }
+        return `${value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₽`;
+      };
+
+      const formatKm = (value) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return '0 км';
+        return `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} км`;
+      };
+
+      const setStatusBadge = (statusText) => {
+        statusBadge.textContent = statusText || '—';
+        statusBadge.className = 'status';
+        if (!statusText) return;
+
+        if (statusText.toLowerCase().includes('готов')) {
+          statusBadge.classList.add('status--done');
+        } else if (statusText.toLowerCase().includes('требуется')) {
+          statusBadge.classList.add('status--warning');
+        } else {
+          statusBadge.classList.add('status--muted');
+        }
+      };
+
+      const renderMaintenance = (items) => {
+        maintenanceBody.innerHTML = '';
+        if (!items || !items.length) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 3;
+          cell.textContent = 'Нет записей об обслуживании';
+          cell.className = 'text-muted';
+          row.appendChild(cell);
+          maintenanceBody.appendChild(row);
+          return;
+        }
+
+        items.forEach((item) => {
+          const row = document.createElement('tr');
+
+          const dateTd = document.createElement('td');
+          dateTd.textContent = formatDate(item.date);
+          row.appendChild(dateTd);
+
+          const typeTd = document.createElement('td');
+          typeTd.textContent = item.type_of_work;
+          row.appendChild(typeTd);
+
+          const costTd = document.createElement('td');
+          costTd.textContent = formatMoney(item.cost);
+          row.appendChild(costTd);
+
+          maintenanceBody.appendChild(row);
+        });
+      };
+
+      const applyVehicleData = (data) => {
+        const { vehicle, metrics, maintenance, latest_maintenance: latest } = data;
+
+        vehicleBrand.textContent = vehicle?.brand || '—';
+        vehicleModel.textContent = vehicle?.model || '—';
+        vehicleReg.textContent = vehicle?.reg_number || '—';
+        vehicleAssigned.textContent = vehicle?.assigned_since ? formatDate(vehicle.assigned_since) : '—';
+        vehicleTotal.textContent = formatKm(vehicle?.total_distance);
+
+        setStatusBadge(metrics?.status);
+        const kmText = metrics?.next_service_km !== undefined ? `${formatKm(metrics.next_service_km)} до ТО` : '—';
+        nextService.textContent = kmText;
+        avgDaily.textContent = formatKm(metrics?.avg_daily_km);
+        avgMonthly.textContent = formatKm(metrics?.avg_monthly_km);
+        trips30.textContent = `${metrics?.trips_last_30_days || 0}`;
+
+        if (latest) {
+          const daysText =
+            metrics?.days_since_maintenance !== null && metrics?.days_since_maintenance !== undefined
+              ? ` · ${metrics.days_since_maintenance} дн. назад`
+              : '';
+          lastMaintenance.textContent = `${formatDate(latest.date)} · ${latest.type_of_work}${daysText}`;
+        } else {
+          lastMaintenance.textContent = 'Нет записей';
+        }
+
+        renderMaintenance(maintenance);
+      };
+
+      const fetchVehicle = async () => {
+        maintenanceStatus.textContent = '';
+        maintenanceStatus.className = 'text-muted';
+        maintenanceBody.innerHTML = '<tr><td colspan="3" class="text-muted">Загрузка...</td></tr>';
+        setStatusBadge('Загрузка...');
+        nextService.textContent = '—';
+        avgDaily.textContent = '—';
+        avgMonthly.textContent = '—';
+        trips30.textContent = '—';
+        lastMaintenance.textContent = '—';
+
+        try {
+          const response = await fetch('/driver/api/vehicle', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            maintenanceStatus.textContent = data.message || 'Не удалось загрузить данные по автомобилю';
+            maintenanceStatus.className = 'text-error';
+            return;
+          }
+
+          applyVehicleData(data);
+          maintenanceStatus.textContent = '';
+        } catch (err) {
+          maintenanceStatus.textContent = 'Ошибка соединения. Попробуйте обновить страницу.';
+          maintenanceStatus.className = 'text-error';
+        }
+      };
+
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', fetchVehicle);
+      }
+
+      fetchVehicle();
+    });
+  </script>
+</body>
+</html>

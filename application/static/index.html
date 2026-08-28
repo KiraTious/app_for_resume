@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Вход</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    async function handleLogin() {
+      const loginInput = document.getElementById('login');
+      const passwordInput = document.getElementById('password');
+      const statusNode = document.getElementById('login-status');
+
+      statusNode.textContent = '';
+
+      const payload = {
+        username: loginInput.value.trim(),
+        password: passwordInput.value,
+      };
+
+      if (!payload.username || !payload.password) {
+        statusNode.textContent = 'Введите логин и пароль';
+        statusNode.className = 'text-error';
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          statusNode.textContent = data.message || 'Ошибка авторизации';
+          statusNode.className = 'text-error';
+          return;
+        }
+
+        if (data.access_token) {
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('user_role', data.user?.role || '');
+          localStorage.setItem('username', data.user?.username || '');
+        }
+
+        const role = data.user?.role;
+        if (role === 'admin') {
+          window.location.href = '/admin';
+        } else if (role === 'manager') {
+          window.location.href = '/manager';
+        } else {
+          window.location.href = '/driver';
+        }
+      } catch (err) {
+        statusNode.textContent = 'Не удалось выполнить вход';
+        statusNode.className = 'text-error';
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-badge">FT</div>
+        <div class="sidebar-logo-title">
+          <span>FleetTracker</span>
+          <span>Контроль транспорта и маршрутов</span>
+        </div>
+      </div>
+
+      <span class="login-badge">Вход в личный кабинет</span>
+
+      <div>
+        <h1 class="login-title">Авторизация</h1>
+        <p class="text-muted">
+          Введите свои учетные данные для входа в систему.
+        </p>
+      </div>
+
+      <form class="login-form" onsubmit="event.preventDefault(); handleLogin();">
+        <div class="form-field">
+          <label class="form-label" for="login">Логин</label>
+          <input id="login" type="text" placeholder="Введите логин">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="password">Пароль</label>
+          <input id="password" type="password" placeholder="Введите пароль">
+        </div>
+
+        <div class="login-form-row">
+          <button type="submit" class="btn btn--primary btn--pill">
+            Войти
+          </button>
+          <button type="button" class="btn btn--ghost btn--pill">
+            Забыли пароль?
+          </button>
+        </div>
+
+        <p id="login-status" class="text-muted" style="height:1.2rem;margin-top:0.5rem;"></p>
+      </form>
+
+      <p class="text-muted" style="margin-top:0.6rem;font-size:0.8rem;">
+        Учетные записи создаются и выдаются администратором системы.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

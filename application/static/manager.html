@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Кабинет менеджера</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Маршруты</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <div class="sidebar-nav-section-title">Управление</div>
+          <a class="sidebar-link sidebar-link--active">
+            <span>Маршруты</span>
+            <span>●</span>
+          </a>
+          <a class="sidebar-link">
+            <span>Водители</span>
+          </a>
+          <a class="sidebar-link">
+            <span>Транспорт</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">МН</div>
+          <div>
+            <div style="font-size:0.85rem;">Ольга Менеджер</div>
+          </div>
+        </div>
+        <button id="logout-button" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Планирование маршрутов</h1>
+          <p class="main-subtitle">
+            Создавайте и назначайте маршруты водителям и транспортным средствам.
+          </p>
+        </div>
+        <div class="main-header-right" style="gap:0.6rem;">
+          <button id="refresh-all" class="btn btn--ghost btn--pill">Обновить данные</button>
+        </div>
+      </header>
+
+      <section class="card-stack">
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Создать / отредактировать маршрут</div>
+              <p id="route-form-status" class="text-muted" style="margin:0.2rem 0 0;"></p>
+            </div>
+          </div>
+
+          <form id="route-form">
+            <input type="hidden" id="route-id" />
+            <div class="form-grid">
+              <div class="form-field">
+                <label class="form-label" for="route-start">Начало маршрута</label>
+                <input id="route-start" type="text" placeholder="Склад А" list="route-location-hints" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="route-end">Конец маршрута</label>
+                <input id="route-end" type="text" placeholder="Магазин 12" list="route-location-hints" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="route-date">Дата</label>
+                <input id="route-date" type="date" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="route-driver">Водитель</label>
+                <select id="route-driver" required></select>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Транспортное средство</label>
+                <input id="route-vehicle" type="text" readonly placeholder="Подставится автоматически" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="route-clear" class="btn btn--ghost btn--pill">Очистить</button>
+              <button type="submit" class="btn btn--primary btn--pill">Сохранить маршрут</button>
+            </div>
+          </form>
+          <datalist id="route-location-hints"></datalist>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Активные маршруты</div>
+              <p id="routes-status" class="text-muted" style="margin:0.2rem 0 0;"></p>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Маршрут</th>
+                  <th>Дата</th>
+                  <th>Водитель</th>
+                  <th>ТС</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="route-table-body">
+                <tr><td colspan="5" class="text-muted">Загрузка...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Водители</div>
+              <p id="drivers-status" class="text-muted" style="margin:0.2rem 0 0;"></p>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Водитель</th>
+                  <th>№ удостоверения</th>
+                  <th>Закреплённое ТС</th>
+                </tr>
+              </thead>
+              <tbody id="drivers-table-body">
+                <tr><td colspan="3" class="text-muted">Загрузка...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logout = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+      };
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logout();
+          return;
+        }
+        setTimeout(() => logout(), timeout);
+      }
+
+      const logoutButton = document.getElementById('logout-button');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+      }
+
+      const authFetch = async (url, options = {}) => {
+        const opts = { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } };
+        const response = await fetch(url, opts);
+        if (response.status === 401) {
+          logout();
+          return null;
+        }
+        return response;
+      };
+
+      const routeForm = document.getElementById('route-form');
+      const routeIdInput = document.getElementById('route-id');
+      const routeStartInput = document.getElementById('route-start');
+      const routeEndInput = document.getElementById('route-end');
+      const routeDateInput = document.getElementById('route-date');
+      const routeDriverSelect = document.getElementById('route-driver');
+      const routeVehicleInput = document.getElementById('route-vehicle');
+      const routeStatus = document.getElementById('route-form-status');
+      const routeClear = document.getElementById('route-clear');
+      const routesTableBody = document.getElementById('route-table-body');
+      const routesStatus = document.getElementById('routes-status');
+      const driversTableBody = document.getElementById('drivers-table-body');
+      const driversStatus = document.getElementById('drivers-status');
+      const refreshAll = document.getElementById('refresh-all');
+
+      const driverIndex = new Map();
+      const locationHints = [
+        'Москва, Красная площадь',
+        'Москва, Тверская улица',
+        'Москва, Ленинский проспект',
+        'Москва, Проспект Мира',
+        'Москва, Варшавское шоссе',
+        'Москва, Кутузовский проспект',
+        'Москва, Ленинградский проспект',
+        'Москва, Савёловский вокзал',
+        'Москва, Курский вокзал',
+        'Москва, Домодедово',
+        'Москва, Шереметьево',
+        'Москва, Внуково',
+        'Химки, Ленинградское шоссе',
+        'Люберцы, Октябрьский проспект',
+        'Красногорск, Ильинское шоссе',
+        'Мытищи, Ярославское шоссе',
+        'Балашиха, Шоссе Энтузиастов',
+        'Одинцово, Можайское шоссе',
+      ];
+
+      const formatDate = (iso) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.toLocaleDateString('ru-RU');
+      };
+
+      const fullName = (driver) => `${driver.last_name} ${driver.first_name}`.trim();
+
+      const setStatus = (el, text, isError = false) => {
+        if (!el) return;
+        el.textContent = text || '';
+        el.style.color = isError ? '#d92d20' : 'inherit';
+      };
+
+      const updateVehicleHint = () => {
+        const driverId = routeDriverSelect.value;
+        const driver = driverIndex.get(Number(driverId));
+        if (driver && driver.vehicle) {
+          routeVehicleInput.value = `${driver.vehicle.reg_number} · ${driver.vehicle.brand} ${driver.vehicle.model}`;
+        } else if (driver) {
+          routeVehicleInput.value = 'За выбранным водителем нет закрепленного ТС';
+        } else {
+          routeVehicleInput.value = '';
+        }
+      };
+
+      const resetForm = () => {
+        routeIdInput.value = '';
+        routeStartInput.value = '';
+        routeEndInput.value = '';
+        routeDateInput.valueAsDate = new Date();
+        routeDriverSelect.value = '';
+        routeVehicleInput.value = '';
+        setStatus(routeStatus, '');
+      };
+
+      const loadDrivers = async () => {
+        driverIndex.clear();
+        setStatus(driversStatus, 'Загрузка...');
+        const response = await authFetch('/admin/drivers');
+        if (!response) return;
+        if (!response.ok) {
+          setStatus(driversStatus, 'Не удалось загрузить водителей', true);
+          return;
+        }
+        const data = await response.json();
+        const drivers = data.items || [];
+
+        routeDriverSelect.innerHTML = '<option value="" disabled selected>Выберите водителя</option>';
+        driversTableBody.innerHTML = '';
+
+        if (!drivers.length) {
+          driversTableBody.innerHTML = '<tr><td colspan="3" class="text-muted">Нет данных</td></tr>';
+        }
+
+        drivers.forEach((driver) => {
+          driverIndex.set(driver.id, driver);
+          const option = document.createElement('option');
+          option.value = driver.id;
+          option.textContent = `${driver.first_name} ${driver.last_name}`;
+          routeDriverSelect.appendChild(option);
+
+          const row = document.createElement('tr');
+          const vehicleLabel = driver.vehicle ? `${driver.vehicle.reg_number} · ${driver.vehicle.brand} ${driver.vehicle.model}` : 'Не закреплено';
+          row.innerHTML = `
+            <td>${driver.first_name} ${driver.last_name}</td>
+            <td>${driver.license_number}</td>
+            <td>${vehicleLabel}</td>
+          `;
+          driversTableBody.appendChild(row);
+        });
+
+        setStatus(driversStatus, drivers.length ? '' : '');
+        updateVehicleHint();
+      };
+
+      const renderRoutes = (routes = []) => {
+        routesTableBody.innerHTML = '';
+        if (!routes.length) {
+          routesTableBody.innerHTML = '<tr><td colspan="5" class="text-muted">Маршруты не найдены</td></tr>';
+          return;
+        }
+
+        routes.forEach((route) => {
+          const driverName = route.driver ? `${route.driver.first_name} ${route.driver.last_name}` : 'Не назначен';
+          const vehicleLabel = route.vehicle ? `${route.vehicle.reg_number}` : 'Не назначено';
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${route.start_location} → ${route.end_location}</td>
+            <td>${formatDate(route.date)}</td>
+            <td>${driverName}</td>
+            <td>${vehicleLabel}</td>
+          `;
+          const actionsCell = document.createElement('td');
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn btn--ghost btn--pill';
+          editBtn.style.fontSize = '0.75rem';
+          editBtn.style.padding = '0.25rem 0.6rem';
+          editBtn.textContent = 'Редактировать';
+          editBtn.dataset.routeId = route.id;
+          editBtn.dataset.startLocation = route.start_location;
+          editBtn.dataset.endLocation = route.end_location;
+          editBtn.dataset.date = route.date;
+          editBtn.dataset.driverId = route.driver ? route.driver.id : '';
+          editBtn.dataset.vehicleLabel = vehicleLabel;
+          actionsCell.appendChild(editBtn);
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'btn btn--ghost btn--pill';
+          deleteBtn.style.fontSize = '0.75rem';
+          deleteBtn.style.padding = '0.25rem 0.6rem';
+          deleteBtn.style.color = '#d92d20';
+          deleteBtn.dataset.routeId = route.id;
+          deleteBtn.dataset.action = 'delete';
+          deleteBtn.textContent = 'Удалить';
+          actionsCell.appendChild(deleteBtn);
+          row.appendChild(actionsCell);
+          routesTableBody.appendChild(row);
+        });
+      };
+
+      const loadRoutes = async () => {
+        setStatus(routesStatus, 'Загрузка...');
+        const response = await authFetch('/admin/routes');
+        if (!response) return;
+        if (!response.ok) {
+          setStatus(routesStatus, 'Не удалось загрузить маршруты', true);
+          return;
+        }
+        const data = await response.json();
+        renderRoutes(data.items || []);
+        setStatus(routesStatus, '');
+      };
+
+      const ensureLocationHints = () => {
+        const datalist = document.getElementById('route-location-hints');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+        locationHints.forEach((hint) => {
+          const option = document.createElement('option');
+          option.value = hint;
+          datalist.appendChild(option);
+        });
+      };
+
+      const handleRouteAction = (event) => {
+        const btn = event.target.closest('button[data-route-id]');
+        if (!btn) return;
+        const action = btn.dataset.action || 'edit';
+
+        if (action === 'delete') {
+          const routeId = btn.dataset.routeId;
+          if (!routeId) return;
+          if (!confirm('Удалить маршрут?')) return;
+          setStatus(routesStatus, 'Удаление...');
+          authFetch(`/admin/routes/${routeId}`, { method: 'DELETE' })
+            .then((response) => {
+              if (!response) return null;
+              return response.json().then((data) => ({ ok: response.ok, data }));
+            })
+            .then(async (result) => {
+              if (!result) return;
+              if (!result.ok) {
+                setStatus(routesStatus, result.data?.message || 'Не удалось удалить маршрут', true);
+                return;
+              }
+              setStatus(routesStatus, result.data?.message || 'Маршрут удалён');
+              if (routeIdInput.value === routeId) {
+                resetForm();
+              }
+              await loadRoutes();
+            });
+          return;
+        }
+
+        const routeId = btn.dataset.routeId;
+        routeIdInput.value = routeId;
+        routeStartInput.value = btn.dataset.startLocation || '';
+        routeEndInput.value = btn.dataset.endLocation || '';
+        routeDateInput.value = btn.dataset.date || '';
+
+        const driverId = btn.dataset.driverId;
+        if (driverId) {
+          routeDriverSelect.value = driverId;
+        }
+        updateVehicleHint();
+        setStatus(routeStatus, 'Маршрут загружен для редактирования');
+      };
+
+      const submitRoute = async (event) => {
+        event.preventDefault();
+        setStatus(routeStatus, 'Сохранение...');
+        const payload = {
+          start_location: routeStartInput.value.trim(),
+          end_location: routeEndInput.value.trim(),
+          date: routeDateInput.value,
+          driver_id: routeDriverSelect.value ? Number(routeDriverSelect.value) : null,
+        };
+
+        const isUpdate = Boolean(routeIdInput.value);
+        const url = isUpdate ? `/admin/routes/${routeIdInput.value}` : '/admin/routes';
+        const method = isUpdate ? 'PUT' : 'POST';
+
+        const response = await authFetch(url, { method, body: JSON.stringify(payload) });
+        if (!response) return;
+
+        const data = await response.json();
+        if (!response.ok) {
+          setStatus(routeStatus, data.message || 'Не удалось сохранить маршрут', true);
+          return;
+        }
+
+        setStatus(routeStatus, data.message || 'Маршрут сохранён');
+        await loadRoutes();
+        resetForm();
+      };
+
+      routeDriverSelect.addEventListener('change', updateVehicleHint);
+      routeClear.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetForm();
+      });
+      routeForm.addEventListener('submit', submitRoute);
+      routesTableBody.addEventListener('click', handleRouteAction);
+      refreshAll.addEventListener('click', () => {
+        loadDrivers();
+        loadRoutes();
+      });
+
+      resetForm();
+      ensureLocationHints();
+      loadDrivers().then(loadRoutes);
+    });
+  </script>
+</body>
+</html>

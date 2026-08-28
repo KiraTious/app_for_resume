@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+RUN groupadd -g 33333 appgroup && useradd -r -u 33333 -g appgroup -m appuser
+
+WORKDIR /service
+
+COPY --chown=33333:33333 /application/YandexMaps/requirements.txt requirements.txt
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=33333:33333 /application/YandexMaps/app.py app.py
+
+EXPOSE 8081
+
+USER 33333:33333
+
+CMD ["gunicorn", "-b", "0.0.0.0:8081", "app:app"]

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Навигация</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Кабинет водителя</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <div class="sidebar-nav-section-title">Основное</div>
+          <a href="/driver" class="sidebar-link">
+            <span>Мои маршруты</span>
+          </a>
+          <a href="/driver/vehicle" class="sidebar-link">
+            <span>Мой автомобиль</span>
+          </a>
+          <a href="/driver/maintenance" class="sidebar-link">
+            <span>Обслуживание и топливо</span>
+          </a>
+          <a href="/driver/navigation" class="sidebar-link sidebar-link--active">
+            <span>Навигация</span>
+            <span>●</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">ВД</div>
+          <div>
+            <div style="font-size:0.85rem;">Иван Петров</div>
+            <div style="font-size:0.75rem;opacity:0.75;">Водитель</div>
+          </div>
+        </div>
+        <a id="logout-link" href="/index.html" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Навигация по маршруту</h1>
+          <p class="main-subtitle">
+            Построение маршрута на карте по заданию менеджера.
+          </p>
+        </div>
+        <div class="main-header-right">
+          <button id="refresh-btn" class="btn btn--ghost btn--pill">Обновить данные</button>
+        </div>
+      </header>
+
+      <section class="main-grid main-grid--full">
+        <!-- Левая колонка: данные маршрута -->
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Текущее задание</div>
+                <div class="card-subtitle">
+                  Данные маршрута из базы по вашему авто.
+                </div>
+              </div>
+              <span id="assignment-status" class="chip">Загрузка...</span>
+            </div>
+
+            <div id="assignment-content" class="form-grid">
+              <div class="form-field">
+                <span class="form-label">Точка старта</span>
+                <div id="assignment-start" class="text-muted">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Пункт назначения</span>
+                <div id="assignment-end" class="text-muted">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Дата маршрута</span>
+                <div id="assignment-date" class="text-muted">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Плановая длина</span>
+                <div id="assignment-distance" class="text-muted">—</div>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Назначенный маршрут</span>
+                <div id="assignment-note" class="text-muted">Ожидание данных...</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Построение маршрута</div>
+                <div class="card-subtitle">
+                  Выберите маршрут из базы или создайте новый.
+                </div>
+              </div>
+            </div>
+
+            <form id="route-form">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Маршрут из базы</label>
+                  <select id="route-select">
+                    <option value="">Выберите сохранённый маршрут</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Дата выполнения</label>
+                  <input id="route-date" type="date">
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Точка старта</label>
+                  <input id="route-start" type="text" placeholder="Например: Склад А, ул. Складская, 10">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Пункт назначения</label>
+                  <input id="route-end" type="text" placeholder="Магазин, адрес">
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Промежуточная остановка</label>
+                  <input id="route-waypoint" type="text" placeholder="Опционально">
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Предпочтения маршрута</label>
+                  <select id="route-preference">
+                    <option value="default">По умолчанию</option>
+                    <option value="avoid_tolls">Избегать платных дорог</option>
+                    <option value="short">Кратчайшее по расстоянию</option>
+                    <option value="fast">Быстрейшее по времени</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Статус формы</label>
+                  <div id="form-status" class="text-muted">Введите данные или выберите маршрут</div>
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.3rem;flex-wrap:wrap;">
+                <button type="button" id="clear-btn" class="btn btn--ghost btn--pill">
+                  Очистить
+                </button>
+                <button type="submit" class="btn btn--primary btn--pill">
+                  Построить маршрут
+                </button>
+              </div>
+            </form>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Карта маршрута</div>
+                <div class="card-subtitle" id="map-status">Ожидание данных о маршруте.</div>
+              </div>
+            </div>
+
+            <div id="map" class="map-placeholder"></div>
+          </article>
+        </div>
+
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logoutAndRedirect = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/index.html';
+      };
+
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          logoutAndRedirect();
+        });
+      }
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logoutAndRedirect();
+          return;
+        }
+        setTimeout(logoutAndRedirect, timeout);
+      }
+
+      const assignmentStatus = document.getElementById('assignment-status');
+      const assignmentStart = document.getElementById('assignment-start');
+      const assignmentEnd = document.getElementById('assignment-end');
+      const assignmentDate = document.getElementById('assignment-date');
+      const assignmentDistance = document.getElementById('assignment-distance');
+      const assignmentNote = document.getElementById('assignment-note');
+
+      const routeSelect = document.getElementById('route-select');
+      const routeDate = document.getElementById('route-date');
+      const routeStart = document.getElementById('route-start');
+      const routeEnd = document.getElementById('route-end');
+      const routeWaypoint = document.getElementById('route-waypoint');
+      const routePreference = document.getElementById('route-preference');
+      const formStatus = document.getElementById('form-status');
+      const form = document.getElementById('route-form');
+      const clearBtn = document.getElementById('clear-btn');
+      const refreshBtn = document.getElementById('refresh-btn');
+      const mapContainer = document.getElementById('map');
+      const mapStatus = document.getElementById('map-status');
+      const mapsEndpoint = `${window.location.protocol}//${window.location.hostname}:8081/directions`;
+
+      let cachedRoutes = [];
+      let currentRouteId = null;
+      let lastAssignment = null;
+
+      const formatDate = (isoDate) => {
+        if (!isoDate) return '—';
+        const dateObj = new Date(isoDate);
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return `${day}.${month}.${year}`;
+      };
+
+      const formatKm = (distance) => {
+        if (distance === undefined || distance === null || Number.isNaN(distance)) {
+          return '0 км';
+        }
+        return `${Math.round(distance)} км`;
+      };
+
+      const setMapPlaceholder = (message, tone = 'muted') => {
+        mapContainer.innerHTML = `
+          <div class="map-placeholder-inner">
+            <div class="map-placeholder-title">Карта маршрута</div>
+            <div class="map-placeholder-text ${tone === 'error' ? 'text-error' : ''}">${message}</div>
+          </div>
+        `;
+        mapStatus.textContent = message;
+        if (tone === 'error') {
+          mapStatus.className = 'text-error';
+        } else {
+          mapStatus.className = 'card-subtitle';
+        }
+      };
+
+      const renderMapFromData = (mapData) => {
+        if (!mapData || !mapData.map_url) return false;
+
+        mapContainer.innerHTML = `<img src="${mapData.map_url}" alt="Маршрут на карте" class="map-image" loading="lazy">`;
+        const statusParts = [];
+        if (mapData.distance_text) statusParts.push(mapData.distance_text);
+        if (mapData.duration_text) statusParts.push(mapData.duration_text);
+        mapStatus.textContent = statusParts.length ? statusParts.join(', ') : 'Маршрут построен';
+        mapStatus.className = 'card-subtitle';
+        return true;
+      };
+
+      const updateMap = async ({ start, end, waypoint, preference }) => {
+        const origin = (start || '').trim();
+        const destination = (end || '').trim();
+
+        if (!origin || !destination) {
+          setMapPlaceholder('Укажите старт и финиш, чтобы построить маршрут.');
+          return;
+        }
+
+        mapStatus.textContent = 'Запрос к сервису карт...';
+        mapStatus.className = 'card-subtitle';
+        mapContainer.innerHTML = '<div class="map-loading">Строим маршрут...</div>';
+
+        try {
+          const response = await fetch(mapsEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ start: origin, end: destination, waypoint, preference }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            setMapPlaceholder(data.message || 'Не удалось построить маршрут через сервис карт.', 'error');
+            return;
+          }
+
+          if (!renderMapFromData(data)) {
+            setMapPlaceholder('Маршрут построен, но карта недоступна.');
+          }
+        } catch (err) {
+          setMapPlaceholder('Сервис карт недоступен. Убедитесь, что контейнер yandexmaps запущен.', 'error');
+        }
+      };
+
+      const setAssignment = (route) => {
+        if (!route) {
+          assignmentStatus.textContent = 'Маршрут не назначен';
+          assignmentStatus.className = 'chip chip--muted';
+          assignmentStart.textContent = '—';
+          assignmentEnd.textContent = '—';
+          assignmentDate.textContent = '—';
+          assignmentDistance.textContent = '—';
+          assignmentNote.textContent = 'Добавьте маршрут или выберите его из списка.';
+          currentRouteId = null;
+          setMapPlaceholder('Выберите маршрут или создайте новый, чтобы увидеть карту.');
+          return;
+        }
+
+        assignmentStatus.textContent = 'Маршрут загружен';
+        assignmentStatus.className = 'chip chip--success';
+        assignmentStart.textContent = route.start_location || '—';
+        assignmentEnd.textContent = route.end_location || '—';
+        assignmentDate.textContent = formatDate(route.date);
+        assignmentDistance.textContent = route.distance_text || formatKm(route.distance);
+        assignmentNote.textContent = route.vehicle_reg_number
+          ? `Маршрут назначен на ТС ${route.vehicle_reg_number}`
+          : 'Маршрут назначен';
+        currentRouteId = route.id;
+        lastAssignment = route;
+        if (!renderMapFromData(route)) {
+          updateMap({
+            start: route.start_location,
+            end: route.end_location,
+            waypoint: route.waypoint,
+            preference: route.preference,
+          });
+        }
+      };
+
+      const populateSelect = (routes) => {
+        routeSelect.innerHTML = '<option value="">Выберите сохранённый маршрут</option>';
+        routes.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = `${formatDate(item.date)} · ${item.start_location} → ${item.end_location}`;
+          routeSelect.appendChild(option);
+        });
+      };
+
+      const clearForm = () => {
+        routeSelect.value = '';
+        routeDate.value = '';
+        routeStart.value = '';
+        routeEnd.value = '';
+        routeWaypoint.value = '';
+        routePreference.value = 'default';
+        formStatus.textContent = 'Введите данные или выберите маршрут';
+        formStatus.className = 'text-muted';
+      };
+
+      const onSelectChange = () => {
+        const selected = cachedRoutes.find((r) => String(r.id) === routeSelect.value);
+        if (selected) {
+          routeDate.value = selected.date || '';
+          routeStart.value = selected.start_location || '';
+          routeEnd.value = selected.end_location || '';
+          formStatus.textContent = 'Маршрут загружен из базы. Можно отредактировать.';
+          formStatus.className = '';
+          setAssignment(selected);
+        } else {
+          clearForm();
+          setAssignment(lastAssignment);
+        }
+      };
+
+      routeSelect.addEventListener('change', onSelectChange);
+
+      const fetchNavigation = async () => {
+        assignmentStatus.textContent = 'Загрузка...';
+        assignmentStatus.className = 'chip';
+        assignmentNote.textContent = 'Запрашиваем данные...';
+        setMapPlaceholder('Загружаем данные о маршруте...');
+
+        try {
+          const response = await fetch('/driver/api/navigation', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            assignmentStatus.textContent = 'Ошибка';
+            assignmentStatus.className = 'chip chip--error';
+            assignmentNote.textContent = data.message || 'Не удалось загрузить маршрут.';
+            setMapPlaceholder('Не удалось загрузить маршрут для отображения.', 'error');
+            return;
+          }
+
+          const { current_route: currentRoute, routes = [] } = data;
+          cachedRoutes = routes;
+          populateSelect(routes);
+          if (routeSelect.value) {
+            onSelectChange();
+          }
+          setAssignment(currentRoute);
+        } catch (err) {
+          assignmentStatus.textContent = 'Ошибка соединения';
+          assignmentStatus.className = 'chip chip--error';
+          assignmentNote.textContent = 'Проверьте подключение и попробуйте снова.';
+          setMapPlaceholder('Не удалось обратиться к серверу. Попробуйте обновить страницу.', 'error');
+        }
+      };
+
+      const validateForm = () => {
+        const start = routeStart.value.trim();
+        const end = routeEnd.value.trim();
+        const date = routeDate.value;
+        if (!start || !end || !date) {
+          formStatus.textContent = 'Заполните точку старта, пункт назначения и дату.';
+          formStatus.className = 'text-error';
+          return null;
+        }
+
+        formStatus.textContent = 'Отправка данных...';
+        formStatus.className = 'text-muted';
+
+        return {
+          start_location: start,
+          end_location: end,
+          date,
+          preference: routePreference.value,
+          waypoint: routeWaypoint.value.trim(),
+        };
+      };
+
+      const submitForm = async (event) => {
+        event.preventDefault();
+        const payload = validateForm();
+        if (!payload) return;
+
+        try {
+          const response = await fetch('/driver/api/navigation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            formStatus.textContent = data.message || 'Не удалось сохранить маршрут.';
+            formStatus.className = 'text-error';
+            return;
+          }
+
+          cachedRoutes = [data.route, ...cachedRoutes].slice(0, 25);
+          populateSelect(cachedRoutes);
+          routeSelect.value = String(data.route.id);
+          setAssignment(data.route);
+          formStatus.textContent = 'Маршрут сохранён и назначен.';
+          formStatus.className = '';
+        } catch (err) {
+          formStatus.textContent = 'Ошибка соединения. Попробуйте снова.';
+          formStatus.className = 'text-error';
+        }
+      };
+
+      form.addEventListener('submit', submitForm);
+      clearBtn.addEventListener('click', clearForm);
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', fetchNavigation);
+      }
+
+      fetchNavigation();
+    });
+  </script>
+</body>
+</html>

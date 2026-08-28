@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Обслуживание и топливо</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Кабинет водителя</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <div class="sidebar-nav-section-title">Основное</div>
+          <a href="/driver" class="sidebar-link">
+            <span>Мои маршруты</span>
+          </a>
+          <a href="/driver/vehicle" class="sidebar-link">
+            <span>Мой автомобиль</span>
+          </a>
+          <a href="/driver/maintenance" class="sidebar-link sidebar-link--active">
+            <span>Обслуживание и топливо</span>
+            <span>●</span>
+          </a>
+          <a href="/driver/navigation" class="sidebar-link">
+            <span>Навигация</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">ВД</div>
+          <div>
+            <div style="font-size:0.85rem;">Иван Петров</div>
+            <div style="font-size:0.75rem;opacity:0.75;">Водитель</div>
+          </div>
+        </div>
+        <a id="logout-link" href="/index.html" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Обслуживание и топливо</h1>
+          <p class="main-subtitle">
+            Добавление заправок и работ по обслуживанию для вашего автомобиля.
+          </p>
+        </div>
+        <div class="main-header-right">
+          <span class="tag-role">Водитель</span>
+        </div>
+      </header>
+
+      <section class="main-grid">
+        <!-- Форма добавления операции -->
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Добавить операцию</div>
+                <div class="card-subtitle">
+                  Отметьте заправку или работы по обслуживанию.
+                </div>
+              </div>
+              <div id="form-status" class="text-muted"></div>
+            </div>
+
+            <form id="operation-form">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Тип операции</label>
+                  <select id="operation-type" required>
+                    <option value="fuel">Заправка</option>
+                    <option value="service">ТО / ремонт</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Дата</label>
+                  <input type="date" id="operation-date" required>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Пробег, км</label>
+                  <input type="number" id="operation-mileage" placeholder="Например, 154300">
+                </div>
+              </div>
+
+              <div class="section-title" id="fuel-title">Параметры заправки</div>
+              <div class="form-grid" id="fuel-fields">
+                <div class="form-field">
+                  <label class="form-label">Объём топлива, л</label>
+                  <input type="number" id="fuel-volume" placeholder="Например, 55" min="0" step="0.1">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Стоимость, ₽</label>
+                  <input type="number" id="fuel-cost" placeholder="Например, 4500" min="0" step="0.01">
+                </div>
+              </div>
+
+              <div class="section-title" id="service-title">Параметры обслуживания</div>
+              <div class="form-grid" id="service-fields">
+                <div class="form-field">
+                  <label class="form-label">Тип работ</label>
+                  <input type="text" id="service-type" placeholder="Плановое ТО, замена масла и фильтров">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Стоимость работ, ₽</label>
+                  <input type="number" id="service-cost" placeholder="0" min="0" step="0.01">
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.3rem;">
+                <button type="button" id="reset-form" class="btn btn--ghost btn--pill">
+                  Очистить форму
+                </button>
+                <button type="submit" class="btn btn--primary btn--pill">
+                  Сохранить операцию
+                </button>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <!-- История операций и итоги -->
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">История операций по автомобилю</div>
+                <div class="card-subtitle">Заправки и обслуживание</div>
+              </div>
+              <div id="history-status" class="text-muted"></div>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Тип</th>
+                  <th>Описание</th>
+                  <th>Сумма</th>
+                </tr>
+              </thead>
+              <tbody id="operations-body">
+                <tr>
+                  <td colspan="4" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Итоги за месяц</div>
+                <div class="card-subtitle">По закреплённому автомобилю</div>
+              </div>
+            </div>
+            <ul id="summary-list" style="list-style:none;padding:0;margin:0;font-size:0.85rem;display:flex;flex-direction:column;gap:0.35rem;">
+              <li class="text-muted">Загрузка...</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logoutAndRedirect = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/index.html';
+      };
+
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          logoutAndRedirect();
+        });
+      }
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logoutAndRedirect();
+          return;
+        }
+        setTimeout(logoutAndRedirect, timeout);
+      }
+
+      const el = (id) => document.getElementById(id);
+      const form = el('operation-form');
+      const operationType = el('operation-type');
+      const operationDate = el('operation-date');
+      const operationMileage = el('operation-mileage');
+      const fuelTitle = el('fuel-title');
+      const fuelFields = el('fuel-fields');
+      const serviceTitle = el('service-title');
+      const serviceFields = el('service-fields');
+      const fuelVolume = el('fuel-volume');
+      const fuelCost = el('fuel-cost');
+      const serviceType = el('service-type');
+      const serviceCost = el('service-cost');
+      const formStatus = el('form-status');
+      const resetFormBtn = el('reset-form');
+
+      const operationsBody = el('operations-body');
+      const historyStatus = el('history-status');
+      const summaryList = el('summary-list');
+
+      const toggleSections = () => {
+        const isFuel = operationType.value === 'fuel';
+        fuelTitle.style.display = isFuel ? 'block' : 'none';
+        fuelFields.style.display = isFuel ? 'grid' : 'none';
+        serviceTitle.style.display = isFuel ? 'none' : 'block';
+        serviceFields.style.display = isFuel ? 'none' : 'grid';
+      };
+
+      toggleSections();
+      operationType.addEventListener('change', toggleSections);
+
+      const formatDate = (iso) => {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+      };
+
+      const formatMoney = (value) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return '—';
+        return `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₽`;
+      };
+
+      const formatKm = (value) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return '0 км';
+        return `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} км`;
+      };
+
+      const renderOperations = (items) => {
+        operationsBody.innerHTML = '';
+        if (!items || !items.length) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 4;
+          cell.textContent = 'Нет операций';
+          cell.className = 'text-muted';
+          row.appendChild(cell);
+          operationsBody.appendChild(row);
+          return;
+        }
+
+        items.forEach((item) => {
+          const row = document.createElement('tr');
+
+          const dateTd = document.createElement('td');
+          dateTd.textContent = formatDate(item.event_date);
+          row.appendChild(dateTd);
+
+          const typeTd = document.createElement('td');
+          const badge = document.createElement('span');
+          badge.className = 'status ' + (item.operation_type === 'fuel' ? 'status--planned' : 'status--done');
+          badge.textContent = item.operation_type === 'fuel' ? 'Топливо' : 'ТО / ремонт';
+          typeTd.appendChild(badge);
+          row.appendChild(typeTd);
+
+          const descTd = document.createElement('td');
+          if (item.operation_type === 'fuel') {
+            descTd.textContent = `${item.fuel_volume_l || 0} л`;
+          } else {
+            descTd.textContent = item.type_of_work || 'Работы по обслуживанию';
+          }
+          row.appendChild(descTd);
+
+          const costTd = document.createElement('td');
+          costTd.textContent = formatMoney(item.cost);
+          row.appendChild(costTd);
+
+          operationsBody.appendChild(row);
+        });
+      };
+
+      const renderSummary = (summary) => {
+        summaryList.innerHTML = '';
+        if (!summary) {
+          summaryList.innerHTML = '<li class="text-muted">Нет данных</li>';
+          return;
+        }
+
+        const items = [
+          `• Пробег: ${formatKm(summary.distance)}`,
+          `• Расход топлива: ${summary.fuel_volume ? summary.fuel_volume.toFixed(1) : 0} л${summary.avg_consumption ? ` (≈ ${summary.avg_consumption} л/100 км)` : ''}.`,
+          `• Расходы на топливо: ${formatMoney(summary.fuel_cost)}`,
+          `• Расходы на обслуживание: ${formatMoney(summary.service_cost)}`,
+        ];
+
+        items.forEach((text) => {
+          const li = document.createElement('li');
+          li.textContent = text;
+          summaryList.appendChild(li);
+        });
+      };
+
+      const loadData = async () => {
+        operationsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Загрузка...</td></tr>';
+        summaryList.innerHTML = '<li class="text-muted">Загрузка...</li>';
+        historyStatus.textContent = '';
+
+        try {
+          const response = await fetch('/driver/api/maintenance', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            historyStatus.textContent = data.message || 'Не удалось загрузить операции';
+            historyStatus.className = 'text-error';
+            return;
+          }
+
+          renderOperations(data.operations || []);
+          renderSummary(data.summary);
+        } catch (err) {
+          historyStatus.textContent = 'Ошибка соединения. Попробуйте позже.';
+          historyStatus.className = 'text-error';
+        }
+      };
+
+      const resetForm = () => {
+        operationType.value = 'fuel';
+        operationDate.value = new Date().toISOString().split('T')[0];
+        operationMileage.value = '';
+        fuelVolume.value = '';
+        fuelCost.value = '';
+        serviceType.value = '';
+        serviceCost.value = '';
+        formStatus.textContent = '';
+        formStatus.className = 'text-muted';
+        toggleSections();
+      };
+
+      resetForm();
+
+      resetFormBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetForm();
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formStatus.textContent = 'Сохранение...';
+        formStatus.className = 'text-muted';
+
+        const payload = {
+          operation_type: operationType.value,
+          event_date: operationDate.value,
+          mileage_km: operationMileage.value ? Number(operationMileage.value) : null,
+        };
+
+        if (operationType.value === 'fuel') {
+          payload.fuel_volume_l = fuelVolume.value;
+          payload.cost = fuelCost.value;
+        } else {
+          payload.type_of_work = serviceType.value;
+          payload.cost = serviceCost.value;
+        }
+
+        try {
+          const response = await fetch('/driver/api/maintenance', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            formStatus.textContent = data.message || 'Не удалось сохранить операцию';
+            formStatus.className = 'text-error';
+            return;
+          }
+
+          formStatus.textContent = data.message || 'Сохранено';
+          formStatus.className = 'text-success';
+          resetForm();
+          loadData();
+        } catch (err) {
+          formStatus.textContent = 'Ошибка соединения при сохранении.';
+          formStatus.className = 'text-error';
+        }
+      });
+
+      loadData();
+    });
+  </script>
+</body>
+</html>

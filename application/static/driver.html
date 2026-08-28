@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Мои маршруты</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Кабинет водителя</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <div class="sidebar-nav-section-title">Основное</div>
+          <a href="/driver" class="sidebar-link sidebar-link--active">
+            <span>Мои маршруты</span>
+            <span>●</span>
+          </a>
+          <a href="/driver/vehicle" class="sidebar-link">
+            <span>Мой автомобиль</span>
+          </a>
+          <a href="/driver/maintenance" class="sidebar-link">
+            <span>Обслуживание и топливо</span>
+          </a>
+          <a href="/driver/navigation" class="sidebar-link">
+            <span>Навигация</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">ВД</div>
+          <div>
+            <div style="font-size:0.85rem;">Иван Петров</div>
+            <div style="font-size:0.75rem;opacity:0.75;">Водитель</div>
+          </div>
+        </div>
+        <a id="logout-link" href="/index.html" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Мои маршруты</h1>
+          <p class="main-subtitle">
+            Просмотр текущих и предстоящих рейсов.
+          </p>
+        </div>
+        <div class="main-header-right">
+          <span class="tag-role">Водитель</span>
+          <button class="btn btn--ghost btn--pill">Обновить</button>
+        </div>
+      </header>
+
+      <section class="main-grid">
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Маршруты на сегодня</div>
+                <div class="card-subtitle">Назначенные рейсы</div>
+              </div>
+              <span class="chip" id="today-chip">Сегодня · —</span>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Маршрут</th>
+                  <th>Дата</th>
+                  <th>Статус</th>
+                </tr>
+              </thead>
+              <tbody id="routes-table-body">
+                <tr>
+                  <td colspan="3" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="routes-status" class="text-muted" style="margin-top:0.4rem;"></p>
+          </article>
+        </div>
+
+        <div class="main-grid-column">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Краткая сводка</div>
+                <div class="card-subtitle">По текущему дню</div>
+              </div>
+            </div>
+            <ul id="summary-list" style="list-style:none;padding:0;margin:0;font-size:0.85rem;display:flex;flex-direction:column;gap:0.35rem;">
+              <li class="text-muted">Загрузка...</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logoutAndRedirect = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/index.html';
+      };
+
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          logoutAndRedirect();
+        });
+      }
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logoutAndRedirect();
+          return;
+        }
+        setTimeout(logoutAndRedirect, timeout);
+      }
+
+      const routesTableBody = document.getElementById('routes-table-body');
+      const todayChip = document.getElementById('today-chip');
+      const routesStatus = document.getElementById('routes-status');
+      const refreshButton = document.querySelector('.main-header-right .btn');
+      const summaryList = document.getElementById('summary-list');
+
+      const formatDate = (isoDate) => {
+        const dateObj = new Date(isoDate);
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return `${day}.${month}.${year}`;
+      };
+
+      const formatKm = (distance) => {
+        if (distance === undefined || distance === null || Number.isNaN(distance)) {
+          return '0 км';
+        }
+        return `${Math.round(distance)} км`;
+      };
+
+      const renderRoutes = (items) => {
+        routesTableBody.innerHTML = '';
+        if (!items.length) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 3;
+          cell.className = 'text-muted';
+          cell.textContent = 'Сегодня рейсов нет.';
+          row.appendChild(cell);
+          routesTableBody.appendChild(row);
+          return;
+        }
+
+        items.forEach((route) => {
+          const row = document.createElement('tr');
+
+          const routeCell = document.createElement('td');
+          routeCell.textContent = `${route.start_location} → ${route.end_location}`;
+          row.appendChild(routeCell);
+
+          const dateCell = document.createElement('td');
+          dateCell.textContent = formatDate(route.date);
+          row.appendChild(dateCell);
+
+          const statusCell = document.createElement('td');
+          const statusBadge = document.createElement('span');
+          statusBadge.className = 'status ' + (route.status === 'in_progress' ? 'status--in-progress' : 'status--planned');
+          statusBadge.textContent = route.status === 'in_progress' ? 'В пути' : 'Запланирован';
+          statusCell.appendChild(statusBadge);
+          row.appendChild(statusCell);
+
+          routesTableBody.appendChild(row);
+        });
+      };
+
+      const renderSummary = (summary) => {
+        summaryList.innerHTML = '';
+        const items = [
+          `Плановый пробег: ${formatKm(summary.planned_distance)}`,
+          summary.first_route,
+          summary.maintenance_note,
+        ];
+
+        items.forEach((text) => {
+          const li = document.createElement('li');
+          li.textContent = `• ${text}`;
+          summaryList.appendChild(li);
+        });
+      };
+
+      const fetchToday = async () => {
+        routesStatus.textContent = '';
+        routesTableBody.innerHTML = '<tr><td colspan="4" class="text-muted">Загрузка...</td></tr>';
+        summaryList.innerHTML = '<li class="text-muted">Загрузка...</li>';
+
+        try {
+          const response = await fetch('/driver/api/today', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.status === 401) {
+            logoutAndRedirect();
+            return;
+          }
+
+          const data = await response.json();
+          if (!response.ok) {
+            routesStatus.textContent = data.message || 'Не удалось загрузить маршруты.';
+            routesStatus.className = 'text-error';
+            return;
+          }
+
+          const { routes = [], summary = {} } = data;
+          renderRoutes(routes);
+          renderSummary(summary);
+
+          const count = routes.length;
+          todayChip.textContent = `Сегодня · ${count} ${count === 1 ? 'маршрут' : 'маршрута'}`;
+          routesStatus.textContent = '';
+        } catch (err) {
+          routesStatus.textContent = 'Ошибка соединения. Попробуйте обновить страницу.';
+          routesStatus.className = 'text-error';
+        }
+      };
+
+      if (refreshButton) {
+        refreshButton.addEventListener('click', fetchToday);
+      }
+
+      fetchToday();
+    });
+  </script>
+</body>
+</html>

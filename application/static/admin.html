@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>FleetTracker – Кабинет администратора</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-badge">FT</div>
+          <div class="sidebar-logo-title">
+            <span>FleetTracker</span>
+            <span>Администрирование</span>
+          </div>
+        </div>
+
+        <div class="sidebar-nav">
+          <a class="sidebar-link sidebar-link--active">
+            <span>Пользователи</span>
+            <span>●</span>
+          </a>
+          <a class="sidebar-link">
+            <span>Транспорт</span>
+          </a>
+          <a class="sidebar-link">
+            <span>Обслуживание</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">АД</div>
+          <div>
+            <div style="font-size:0.85rem;">Администратор</div>
+            <div style="font-size:0.75rem;opacity:0.75;">Admin</div>
+          </div>
+        </div>
+        <a href="index.html" class="btn btn--ghost btn--pill" style="padding:0.3rem 0.7rem;font-size:0.75rem;">
+          Выйти из системы
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div class="main-header-left">
+          <h1 class="main-title">Управление пользователями и автопарком</h1>
+          <p class="main-subtitle">
+            Создание учетных записей, добавление водителей и транспортных средств, управление обслуживанием.
+          </p>
+        </div>
+        <div class="main-header-right">
+          <span class="tag-role">Администратор</span>
+          <button class="btn btn--ghost btn--pill">Экспорт</button>
+        </div>
+      </header>
+
+      <nav class="subnav">
+        <a href="#users" class="subnav-link">Пользователи и роли</a>
+        <a href="#vehicles" class="subnav-link">Транспортные средства</a>
+        <a href="#maintenance" class="subnav-link">Обслуживание</a>
+      </nav>
+
+      <section class="main-grid main-grid--full">
+        <div class="main-grid-column">
+          <!-- Блок: Пользователи -->
+          <article class="card" id="users">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Создать пользователя</div>
+                <div class="card-subtitle">
+                  Создает запись в Users, при необходимости сразу же в Drivers и привязку к Vehicles.
+                </div>
+              </div>
+            </div>
+
+            <form id="user-create-form">
+              <div class="section-title">Учетная запись (Users)</div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Логин</label>
+                  <input id="user-username" type="text" placeholder="user.login">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Роль</label>
+                  <select id="user-role">
+                    <option value="driver">Водитель</option>
+                    <option value="manager">Менеджер</option>
+                    <option value="admin">Администратор</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Пароль</label>
+                  <input id="user-password" type="password" placeholder="••••••••">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Подтверждение пароля</label>
+                  <input id="user-password-confirm" type="password" placeholder="••••••••">
+                </div>
+              </div>
+
+              <div class="section-title">Данные водителя (Drivers)</div>
+              <p class="text-muted" style="margin-bottom:0.4rem;">
+                Заполняется только для роли «Водитель» (в макете поля всегда видны).
+              </p>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Имя</label>
+                  <input id="driver-first-name" type="text" placeholder="Иван">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Фамилия</label>
+                  <input id="driver-last-name" type="text" placeholder="Петров">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Номер удостоверения</label>
+                  <input id="driver-license" type="text" placeholder="77 11 234567">
+                </div>
+              </div>
+
+              <div class="section-title">Закрепление за ТС (Vehicle)</div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Госномер ТС (опционально)</label>
+                  <input id="user-vehicle-reg" type="text" placeholder="А123ВС 77">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Комментарий</label>
+                  <textarea placeholder="Например: ночные смены, только Москва"></textarea>
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.2rem;">
+                <button type="button" id="user-form-clear" class="btn btn--ghost btn--pill">
+                  Очистить
+                </button>
+                <button type="submit" class="btn btn--primary btn--pill">Создать пользователя</button>
+              </div>
+              <p id="user-create-status" class="text-muted" style="height:1.2rem;margin-top:0.4rem;"></p>
+            </form>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Список пользователей</div>
+                <div class="card-subtitle">Удаление и базовая информация</div>
+              </div>
+            </div>
+            <form id="user-search-form" class="search-block">
+              <input id="user-search" type="text" placeholder="Поиск по логину или ФИО" class="search-input">
+              <div class="search-actions">
+                <button type="button" id="user-search-reset" class="btn btn--ghost btn--pill">Сбросить</button>
+                <button type="submit" class="btn btn--primary btn--pill">Искать</button>
+              </div>
+            </form>
+
+            <table class="table" style="margin-top:0.5rem;">
+              <thead>
+                <tr>
+                  <th>Логин</th>
+                  <th>Роль</th>
+                  <th>ФИО / водитель</th>
+                  <th>ТС</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr>
+                  <td colspan="5" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="users-list-status" class="text-muted" style="margin:0.4rem 0 0;"></p>
+          </article>
+
+          <!-- Блок: Транспорт -->
+          <article class="card" id="vehicles">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Транспортные средства</div>
+                <div class="card-subtitle">Учет ТС и назначение водителей.</div>
+              </div>
+            </div>
+
+            <div class="section-title">Добавить транспортное средство</div>
+            <form id="vehicle-create-form">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Марка</label>
+                  <input id="vehicle-brand" type="text" placeholder="Mercedes-Benz">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Модель</label>
+                  <input id="vehicle-model" type="text" placeholder="Sprinter 315 CDI">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Регистрационный номер</label>
+                  <input id="vehicle-reg-number" type="text" placeholder="А123ВС 77">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Год выпуска</label>
+                  <input type="number" placeholder="2020">
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:0.4rem;">
+                <button type="button" id="vehicle-form-clear" class="btn btn--ghost btn--pill">
+                  Очистить
+                </button>
+                <button type="submit" class="btn btn--primary btn--pill">Добавить ТС</button>
+              </div>
+              <p id="vehicle-create-status" class="text-muted" style="height:1.2rem;margin-top:0.4rem;"></p>
+            </form>
+            <div class="section-divider section-divider--spaced"></div>
+            <div class="section-title" style="margin-top:0.4rem;">Список ТС</div>
+            <form id="vehicle-search-form" class="search-block">
+              <input id="vehicle-search" type="text" placeholder="Марка, госномер или водитель" class="search-input">
+              <div class="search-actions">
+                <button type="button" id="vehicle-search-reset" class="btn btn--ghost btn--pill">Сбросить</button>
+                <button type="submit" class="btn btn--primary btn--pill">Искать</button>
+              </div>
+            </form>
+            <table class="table" style="margin-top:0.5rem;">
+              <thead>
+                <tr>
+                  <th>ТС</th>
+                  <th>Гос. номер</th>
+                  <th>Водитель</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="vehicles-table-body">
+                <tr>
+                  <td colspan="4" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="vehicles-list-status" class="text-muted" style="margin:0.4rem 0 0;"></p>
+          </article>
+
+          <!-- Блок: Обслуживание -->
+          <article class="card" id="maintenance">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Обслуживание ТС</div>
+                <div class="card-subtitle">
+                  Фиксация работ и стоимости (таблица Maintenance).
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title">Добавить запись обслуживания</div>
+            <form id="maintenance-create-form">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">Транспортное средство</label>
+                  <select id="maintenance-vehicle"></select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Тип работ</label>
+                  <input id="maintenance-type" type="text" placeholder="Например, плановое ТО">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Дата</label>
+                  <input id="maintenance-date" type="date">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Стоимость, ₽</label>
+                  <input id="maintenance-cost" type="number" step="0.01" placeholder="0">
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:0.4rem;">
+                <button type="button" id="maintenance-form-clear" class="btn btn--ghost btn--pill">
+                  Очистить
+                </button>
+                <button type="submit" class="btn btn--primary btn--pill">
+                  Сохранить запись
+                </button>
+              </div>
+              <p id="maintenance-create-status" class="text-muted" style="height:1.2rem;margin-top:0.4rem;"></p>
+            </form>
+
+            <div class="section-divider section-divider--spaced"></div>
+            <div class="section-title" style="margin-top:0.4rem;">История обслуживания</div>
+            <form id="maintenance-search-form" class="search-block">
+              <input id="maintenance-search" type="text" placeholder="Поиск по ТС или типу работ" class="search-input">
+              <div class="search-actions">
+                <button type="button" id="maintenance-search-reset" class="btn btn--ghost btn--pill">Сбросить</button>
+                <button type="submit" class="btn btn--primary btn--pill">Искать</button>
+              </div>
+            </form>
+
+            <table class="table" style="margin-top:0.5rem;">
+              <thead>
+                <tr>
+                  <th>ТС</th>
+                  <th>Дата</th>
+                  <th>Тип работ</th>
+                  <th>Стоимость</th>
+                </tr>
+              </thead>
+              <tbody id="maintenance-table-body">
+                <tr>
+                  <td colspan="4" class="text-muted">Загрузка...</td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="maintenance-list-status" class="text-muted" style="margin:0.4rem 0 0;"></p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      const logoutAndRedirect = () => {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+      };
+
+      const getTokenExpiration = (jwt) => {
+        try {
+          const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp) {
+            return payload.exp * 1000;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
+
+      const expirationMs = getTokenExpiration(token);
+      if (expirationMs) {
+        const timeout = expirationMs - Date.now();
+        if (timeout <= 0) {
+          logoutAndRedirect();
+          return;
+        }
+        setTimeout(() => logoutAndRedirect(), timeout);
+      }
+
+      const userForm = document.getElementById('user-create-form');
+      const userStatus = document.getElementById('user-create-status');
+      const vehicleForm = document.getElementById('vehicle-create-form');
+      const vehicleStatus = document.getElementById('vehicle-create-status');
+      const userFormClear = document.getElementById('user-form-clear');
+      const vehicleFormClear = document.getElementById('vehicle-form-clear');
+      const maintenanceForm = document.getElementById('maintenance-create-form');
+      const maintenanceStatus = document.getElementById('maintenance-create-status');
+      const maintenanceFormClear = document.getElementById('maintenance-form-clear');
+
+      const formatName = (value) => {
+        const cleaned = (value || '')
+          .replace(/[^А-Яа-яЁё]/g, '')
+          .toLowerCase();
+        if (!cleaned) return '';
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      };
+
+      const formatLicense = (value) => {
+        const digits = (value || '').replace(/\D/g, '').slice(0, 10);
+        const part1 = digits.slice(0, 2);
+        const part2 = digits.slice(2, 4);
+        const part3 = digits.slice(4, 10);
+        let result = part1;
+        if (part2) result += ` ${part2}`;
+        if (part3) result += ` ${part3}`;
+        return result.trim();
+      };
+
+      const formatRegNumber = (value) => {
+        const cleaned = (value || '')
+          .toUpperCase()
+          .replace(/[^А-ЯЁ0-9]/g, '')
+          .replace(/[A-Z]/g, '');
+        const match = cleaned.match(/^([А-ЯЁ]?)(\d{0,3})([А-ЯЁ]{0,2})(\d{0,3})/);
+        if (!match) return '';
+        const [, l1, d1, l2, d2] = match;
+        return `${l1 || ''}${d1 || ''}${l2 || ''}${d2 || ''}`;
+      };
+
+      const attachFormatters = () => {
+        const firstNameInput = document.getElementById('driver-first-name');
+        const lastNameInput = document.getElementById('driver-last-name');
+        const licenseInput = document.getElementById('driver-license');
+        const vehicleInput = document.getElementById('vehicle-reg-number');
+        const userVehicleInput = document.getElementById('user-vehicle-reg');
+
+        firstNameInput?.addEventListener('input', (e) => {
+          const formatted = formatName(e.target.value);
+          e.target.value = formatted;
+        });
+
+        lastNameInput?.addEventListener('input', (e) => {
+          const formatted = formatName(e.target.value);
+          e.target.value = formatted;
+        });
+
+        licenseInput?.addEventListener('input', (e) => {
+          const formatted = formatLicense(e.target.value);
+          e.target.value = formatted;
+        });
+
+        vehicleInput?.addEventListener('input', (e) => {
+          const formatted = formatRegNumber(e.target.value);
+          e.target.value = formatted;
+        });
+
+        userVehicleInput?.addEventListener('input', (e) => {
+          const formatted = formatRegNumber(e.target.value);
+          e.target.value = formatted;
+        });
+      };
+
+      const setStatus = (node, message, isError = false) => {
+        if (!node) return;
+        node.textContent = message;
+        node.className = isError ? 'text-error' : 'text-muted';
+      };
+
+      const handleUnauthorized = () => {
+        logoutAndRedirect();
+      };
+
+      const usersTableBody = document.getElementById('users-table-body');
+      const vehiclesTableBody = document.getElementById('vehicles-table-body');
+      const usersListStatus = document.getElementById('users-list-status');
+      const vehiclesListStatus = document.getElementById('vehicles-list-status');
+      const userSearchForm = document.getElementById('user-search-form');
+      const userSearchInput = document.getElementById('user-search');
+      const userSearchReset = document.getElementById('user-search-reset');
+      const vehicleSearchForm = document.getElementById('vehicle-search-form');
+      const vehicleSearchInput = document.getElementById('vehicle-search');
+      const vehicleSearchReset = document.getElementById('vehicle-search-reset');
+      const maintenanceTableBody = document.getElementById('maintenance-table-body');
+      const maintenanceListStatus = document.getElementById('maintenance-list-status');
+      const maintenanceSearchForm = document.getElementById('maintenance-search-form');
+      const maintenanceSearchInput = document.getElementById('maintenance-search');
+      const maintenanceSearchReset = document.getElementById('maintenance-search-reset');
+      const maintenanceVehicleSelect = document.getElementById('maintenance-vehicle');
+
+      let currentUserQuery = '';
+      let currentVehicleQuery = '';
+      let currentMaintenanceQuery = '';
+      let maintenanceVehicleOptions = [];
+
+      const roleLabels = {
+        admin: 'Администратор',
+        manager: 'Менеджер',
+        driver: 'Водитель',
+      };
+
+      const formatDateValue = (isoDate) => {
+        if (!isoDate) return '—';
+        const date = new Date(isoDate);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleDateString('ru-RU');
+      };
+
+      const formatCurrency = (value) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+        return `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
+      };
+
+      const renderEmptyRow = (tbody, colSpan, text) => {
+        if (!tbody) return;
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = colSpan;
+        cell.className = 'text-muted';
+        cell.textContent = text;
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      };
+
+      const populateMaintenanceVehicles = (items) => {
+        if (!maintenanceVehicleSelect) return;
+        maintenanceVehicleOptions = items || [];
+        const currentValue = maintenanceVehicleSelect.value;
+        maintenanceVehicleSelect.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Выберите ТС';
+        maintenanceVehicleSelect.appendChild(placeholder);
+
+        maintenanceVehicleOptions.forEach((vehicle) => {
+          const option = document.createElement('option');
+          option.value = vehicle.id;
+          option.textContent = `${vehicle.reg_number} · ${vehicle.brand} ${vehicle.model}`;
+          maintenanceVehicleSelect.appendChild(option);
+        });
+
+        if (currentValue) {
+          maintenanceVehicleSelect.value = currentValue;
+        }
+      };
+
+      const renderUsers = (items) => {
+        if (!usersTableBody) return;
+        usersTableBody.innerHTML = '';
+
+        if (!items.length) {
+          renderEmptyRow(usersTableBody, 5, 'Пользователи не найдены.');
+          return;
+        }
+
+        items.forEach((user) => {
+          const row = document.createElement('tr');
+
+          const usernameCell = document.createElement('td');
+          usernameCell.textContent = user.username;
+          row.appendChild(usernameCell);
+
+          const roleCell = document.createElement('td');
+          roleCell.textContent = roleLabels[user.role] || user.role;
+          row.appendChild(roleCell);
+
+          const fioCell = document.createElement('td');
+          if (user.driver) {
+            fioCell.textContent = `${user.driver.first_name} ${user.driver.last_name}`;
+          } else {
+            fioCell.textContent = '—';
+            fioCell.className = 'text-muted';
+          }
+          row.appendChild(fioCell);
+
+          const vehicleCell = document.createElement('td');
+          if (user.vehicles && user.vehicles.length) {
+            vehicleCell.textContent = user.vehicles.join(', ');
+          } else {
+            vehicleCell.textContent = '—';
+            vehicleCell.className = 'text-muted';
+          }
+          row.appendChild(vehicleCell);
+
+          const actionsCell = document.createElement('td');
+          actionsCell.style.textAlign = 'right';
+          const deleteButton = document.createElement('button');
+          deleteButton.className = 'btn btn--danger btn--pill';
+          deleteButton.style.fontSize = '0.7rem';
+          deleteButton.style.padding = '0.25rem 0.7rem';
+          deleteButton.textContent = 'Удалить';
+          deleteButton.addEventListener('click', async () => {
+            if (!confirm(`Удалить пользователя ${user.username}?`)) return;
+            try {
+              const response = await fetch(`/admin/users/${user.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const data = await response.json();
+              if (response.status === 401) {
+                handleUnauthorized();
+                return;
+              }
+              if (!response.ok) {
+                setStatus(usersListStatus, data.message || 'Не удалось удалить пользователя', true);
+                return;
+              }
+              setStatus(usersListStatus, data.message || 'Пользователь удален.');
+              loadUsers(currentUserQuery);
+            } catch (error) {
+              setStatus(usersListStatus, 'Ошибка сети при удалении пользователя', true);
+            }
+          });
+          actionsCell.appendChild(deleteButton);
+          row.appendChild(actionsCell);
+
+          usersTableBody.appendChild(row);
+        });
+      };
+
+      const renderVehicles = (items) => {
+        if (!vehiclesTableBody) return;
+        vehiclesTableBody.innerHTML = '';
+
+        if (!items.length) {
+          renderEmptyRow(vehiclesTableBody, 4, 'ТС не найдены.');
+          return;
+        }
+
+        items.forEach((vehicle) => {
+          const row = document.createElement('tr');
+
+          const nameCell = document.createElement('td');
+          nameCell.textContent = `${vehicle.brand} ${vehicle.model}`;
+          row.appendChild(nameCell);
+
+          const regCell = document.createElement('td');
+          regCell.textContent = vehicle.reg_number;
+          row.appendChild(regCell);
+
+          const driverCell = document.createElement('td');
+          if (vehicle.driver) {
+            driverCell.textContent = `${vehicle.driver.first_name} ${vehicle.driver.last_name}`;
+          } else {
+            driverCell.textContent = '—';
+            driverCell.className = 'text-muted';
+          }
+          row.appendChild(driverCell);
+
+          const actionsCell = document.createElement('td');
+          actionsCell.style.textAlign = 'right';
+          const deleteButton = document.createElement('button');
+          deleteButton.className = 'btn btn--danger btn--pill';
+          deleteButton.style.fontSize = '0.7rem';
+          deleteButton.style.padding = '0.25rem 0.7rem';
+          deleteButton.textContent = 'Удалить';
+          deleteButton.addEventListener('click', async () => {
+            if (!confirm(`Удалить ТС ${vehicle.reg_number}?`)) return;
+            try {
+              const response = await fetch(`/admin/vehicles/${vehicle.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const data = await response.json();
+              if (response.status === 401) {
+                handleUnauthorized();
+                return;
+              }
+              if (!response.ok) {
+                setStatus(vehiclesListStatus, data.message || 'Не удалось удалить ТС', true);
+                return;
+              }
+              setStatus(vehiclesListStatus, data.message || 'ТС удалено.');
+              loadVehicles(currentVehicleQuery);
+            } catch (error) {
+              setStatus(vehiclesListStatus, 'Ошибка сети при удалении ТС', true);
+            }
+          });
+          actionsCell.appendChild(deleteButton);
+          row.appendChild(actionsCell);
+
+          vehiclesTableBody.appendChild(row);
+        });
+      };
+
+      const renderMaintenance = (items) => {
+        if (!maintenanceTableBody) return;
+        maintenanceTableBody.innerHTML = '';
+
+        if (!items.length) {
+          renderEmptyRow(maintenanceTableBody, 4, 'Записей обслуживания нет.');
+          return;
+        }
+
+        items.forEach((item) => {
+          const row = document.createElement('tr');
+
+          const vehicleCell = document.createElement('td');
+          if (item.vehicle) {
+            vehicleCell.textContent = `${item.vehicle.reg_number} · ${item.vehicle.brand} ${item.vehicle.model}`;
+          } else {
+            vehicleCell.textContent = '—';
+            vehicleCell.className = 'text-muted';
+          }
+          row.appendChild(vehicleCell);
+
+          const dateCell = document.createElement('td');
+          dateCell.textContent = formatDateValue(item.created_at);
+          row.appendChild(dateCell);
+
+          const typeCell = document.createElement('td');
+          typeCell.textContent = item.type_of_work;
+          row.appendChild(typeCell);
+
+          const costCell = document.createElement('td');
+          costCell.textContent = formatCurrency(item.cost);
+          row.appendChild(costCell);
+
+          maintenanceTableBody.appendChild(row);
+        });
+      };
+
+      const loadUsers = async (query = '') => {
+        const params = new URLSearchParams();
+        if (query) params.set('query', query);
+        setStatus(usersListStatus, query ? 'Ищем пользователей...' : '');
+
+        try {
+          const response = await fetch(`/admin/users?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+          if (!response.ok) {
+            setStatus(usersListStatus, data.message || 'Не удалось получить пользователей', true);
+            return;
+          }
+          const foundText = query ? `Найдено ${data.items.length} пользователей.` : '';
+          setStatus(usersListStatus, foundText);
+          renderUsers(data.items || []);
+        } catch (error) {
+          setStatus(usersListStatus, 'Ошибка сети при загрузке пользователей', true);
+        }
+      };
+
+      const loadVehicles = async (query = '') => {
+        const params = new URLSearchParams();
+        if (query) params.set('query', query);
+        setStatus(vehiclesListStatus, query ? 'Ищем транспорт...' : '');
+
+        try {
+          const response = await fetch(`/admin/vehicles?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+          if (!response.ok) {
+            setStatus(vehiclesListStatus, data.message || 'Не удалось получить список ТС', true);
+            return;
+          }
+          const foundText = query ? `Найдено ${data.items.length} ТС.` : '';
+          setStatus(vehiclesListStatus, foundText);
+          renderVehicles(data.items || []);
+          populateMaintenanceVehicles(data.items || maintenanceVehicleOptions);
+        } catch (error) {
+          setStatus(vehiclesListStatus, 'Ошибка сети при загрузке ТС', true);
+        }
+      };
+
+      const loadMaintenanceVehicles = async () => {
+        try {
+          const response = await fetch('/admin/vehicles?limit=50', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+          if (!response.ok) {
+            setStatus(maintenanceStatus, data.message || 'Не удалось получить список ТС для обслуживания', true);
+            return;
+          }
+          populateMaintenanceVehicles(data.items || []);
+        } catch (error) {
+          setStatus(maintenanceStatus, 'Ошибка сети при загрузке ТС', true);
+        }
+      };
+
+      const loadMaintenance = async (query = '') => {
+        const params = new URLSearchParams();
+        if (query) params.set('query', query);
+        setStatus(maintenanceListStatus, query ? 'Ищем записи обслуживания...' : '');
+
+        try {
+          const response = await fetch(`/admin/maintenance?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+          if (!response.ok) {
+            setStatus(maintenanceListStatus, data.message || 'Не удалось получить обслуживание', true);
+            return;
+          }
+          const foundText = query ? `Найдено ${data.items.length} записей.` : '';
+          setStatus(maintenanceListStatus, foundText);
+          renderMaintenance(data.items || []);
+        } catch (error) {
+          setStatus(maintenanceListStatus, 'Ошибка сети при загрузке обслуживания', true);
+        }
+      };
+
+      const validateName = (value) => {
+        if (!value) return false;
+        return /^[А-ЯЁ][а-яё]+$/.test(value);
+      };
+
+      const validateLicense = (value) => {
+        return /^\d{2} \d{2} \d{6}$/.test(value);
+      };
+
+      const validateRegNumber = (value) => {
+        return /^[А-ЯЁ][0-9]{3}[А-ЯЁ]{2}[0-9]{2,3}$/.test(value);
+      };
+
+      const postJSON = async (url, body) => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (response.status === 401) {
+          handleUnauthorized();
+        }
+        return { response, data };
+      };
+
+      attachFormatters();
+
+      userForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setStatus(userStatus, 'Создаем пользователя...');
+
+        const username = document.getElementById('user-username')?.value.trim();
+        const role = document.getElementById('user-role')?.value;
+        const password = document.getElementById('user-password')?.value || '';
+        const passwordConfirm = document.getElementById('user-password-confirm')?.value || '';
+        const firstNameInput = document.getElementById('driver-first-name');
+        const lastNameInput = document.getElementById('driver-last-name');
+        const licenseInput = document.getElementById('driver-license');
+        const userVehicleInput = document.getElementById('user-vehicle-reg');
+
+        firstNameInput.value = formatName(firstNameInput.value);
+        lastNameInput.value = formatName(lastNameInput.value);
+        licenseInput.value = formatLicense(licenseInput.value);
+        userVehicleInput.value = formatRegNumber(userVehicleInput.value);
+
+        if (!username || !role || !password || !passwordConfirm) {
+          setStatus(userStatus, 'Заполните все поля учетной записи', true);
+          return;
+        }
+
+        if (password !== passwordConfirm) {
+          setStatus(userStatus, 'Пароли не совпадают', true);
+          return;
+        }
+
+        if (role === 'driver') {
+          if (!firstNameInput.value || !lastNameInput.value || !licenseInput.value || !userVehicleInput.value) {
+            setStatus(userStatus, 'Заполните ФИО, удостоверение и ТС', true);
+            return;
+          }
+          if (!validateName(firstNameInput.value) || !validateName(lastNameInput.value)) {
+            setStatus(userStatus, 'Имя и фамилия: только русские буквы, первая заглавная', true);
+            return;
+          }
+          if (!validateLicense(licenseInput.value)) {
+            setStatus(userStatus, 'Номер удостоверения: формат 00 00 000000', true);
+            return;
+          }
+          if (!validateRegNumber(userVehicleInput.value)) {
+            setStatus(userStatus, 'Госномер ТС: формат А000АА000', true);
+            return;
+          }
+        }
+
+        const payload = {
+          username,
+          password,
+          role,
+          first_name: firstNameInput.value.trim(),
+          last_name: lastNameInput.value.trim(),
+          license_number: licenseInput.value.trim(),
+          vehicle_reg_number: userVehicleInput.value.trim(),
+        };
+
+        try {
+          const { response, data } = await postJSON('/admin/users', payload);
+          if (response.status === 401) {
+            return;
+          }
+          if (!response.ok) {
+            setStatus(userStatus, data.message || 'Не удалось создать пользователя', true);
+            return;
+          }
+          setStatus(userStatus, `Создан пользователь ${data.username}`);
+          userForm.reset();
+          loadUsers(currentUserQuery);
+        } catch (err) {
+          setStatus(userStatus, 'Ошибка сети или сервера', true);
+        }
+      });
+
+      vehicleForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setStatus(vehicleStatus, 'Добавляем ТС...');
+
+        const brandInput = document.getElementById('vehicle-brand');
+        const modelInput = document.getElementById('vehicle-model');
+        const regInput = document.getElementById('vehicle-reg-number');
+
+        regInput.value = formatRegNumber(regInput.value);
+
+        if (!brandInput.value.trim() || !modelInput.value.trim() || !regInput.value.trim()) {
+          setStatus(vehicleStatus, 'Заполните марку, модель и госномер', true);
+          return;
+        }
+
+        if (!validateRegNumber(regInput.value.trim())) {
+          setStatus(vehicleStatus, 'Госномер: формат А000АА000', true);
+          return;
+        }
+
+        const payload = {
+          brand: brandInput.value.trim(),
+          model: modelInput.value.trim(),
+          reg_number: regInput.value.trim(),
+        };
+
+        try {
+          const { response, data } = await postJSON('/admin/vehicles', payload);
+          if (response.status === 401) {
+            return;
+          }
+          if (!response.ok) {
+            setStatus(vehicleStatus, data.message || 'Не удалось добавить ТС', true);
+            return;
+          }
+          setStatus(vehicleStatus, `ТС ${data.reg_number} добавлено`);
+          vehicleForm.reset();
+          loadVehicles(currentVehicleQuery);
+        } catch (err) {
+          setStatus(vehicleStatus, 'Ошибка сети или сервера', true);
+        }
+      });
+
+      maintenanceForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setStatus(maintenanceStatus, 'Сохраняем обслуживание...');
+
+        const vehicleId = maintenanceVehicleSelect?.value;
+        const typeInput = document.getElementById('maintenance-type');
+        const dateInput = document.getElementById('maintenance-date');
+        const costInput = document.getElementById('maintenance-cost');
+
+        if (!vehicleId) {
+          setStatus(maintenanceStatus, 'Выберите ТС', true);
+          return;
+        }
+
+        const typeOfWork = typeInput?.value.trim();
+        if (!typeOfWork) {
+          setStatus(maintenanceStatus, 'Укажите тип работ', true);
+          return;
+        }
+
+        const costValue = parseFloat(costInput?.value || '');
+        if (Number.isNaN(costValue) || costValue < 0) {
+          setStatus(maintenanceStatus, 'Стоимость должна быть неотрицательным числом', true);
+          return;
+        }
+
+        const payload = {
+          vehicle_id: Number(vehicleId),
+          type_of_work: typeOfWork,
+          cost: costValue,
+          performed_at: dateInput?.value || undefined,
+        };
+
+        try {
+          const { response, data } = await postJSON('/admin/maintenance', payload);
+          if (response.status === 401) {
+            return;
+          }
+          if (!response.ok) {
+            setStatus(maintenanceStatus, data.message || 'Не удалось сохранить обслуживание', true);
+            return;
+          }
+          setStatus(maintenanceStatus, 'Запись обслуживания сохранена');
+          maintenanceForm.reset();
+          populateMaintenanceVehicles(maintenanceVehicleOptions);
+          loadMaintenance(currentMaintenanceQuery);
+        } catch (error) {
+          setStatus(maintenanceStatus, 'Ошибка сети или сервера', true);
+        }
+      });
+
+      userSearchForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        currentUserQuery = (userSearchInput?.value || '').trim();
+        loadUsers(currentUserQuery);
+      });
+
+      userSearchReset?.addEventListener('click', () => {
+        if (userSearchInput) userSearchInput.value = '';
+        currentUserQuery = '';
+        setStatus(usersListStatus, '');
+        loadUsers();
+      });
+
+      userFormClear?.addEventListener('click', () => {
+        userForm?.reset();
+        setStatus(userStatus, '');
+      });
+
+      vehicleSearchForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        currentVehicleQuery = (vehicleSearchInput?.value || '').trim();
+        loadVehicles(currentVehicleQuery);
+      });
+
+      vehicleSearchReset?.addEventListener('click', () => {
+        if (vehicleSearchInput) vehicleSearchInput.value = '';
+        currentVehicleQuery = '';
+        setStatus(vehiclesListStatus, '');
+        loadVehicles();
+      });
+
+      vehicleFormClear?.addEventListener('click', () => {
+        vehicleForm?.reset();
+        setStatus(vehicleStatus, '');
+      });
+
+      maintenanceSearchForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        currentMaintenanceQuery = (maintenanceSearchInput?.value || '').trim();
+        loadMaintenance(currentMaintenanceQuery);
+      });
+
+      maintenanceSearchReset?.addEventListener('click', () => {
+        if (maintenanceSearchInput) maintenanceSearchInput.value = '';
+        currentMaintenanceQuery = '';
+        setStatus(maintenanceListStatus, '');
+        loadMaintenance();
+      });
+
+      maintenanceFormClear?.addEventListener('click', () => {
+        maintenanceForm?.reset();
+        setStatus(maintenanceStatus, '');
+      });
+
+      loadUsers();
+      loadVehicles();
+      loadMaintenanceVehicles();
+      loadMaintenance();
+    });
+  </script>
+</body>
+</html>

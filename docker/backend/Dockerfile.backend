@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+RUN groupadd -g 33333 appgroup && useradd -r -u 33333 -g appgroup -m appuser
+
+WORKDIR /application/
+
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY --chown=33333:33333 /application/requirements.txt ./requirements.txt 
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=33333:33333 /application/. .
+
+USER 33333:33333
+
+ENTRYPOINT ["./entrypoint.sh"]

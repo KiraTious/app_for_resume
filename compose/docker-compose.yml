@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../environment/db.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fleettracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - fleet-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile.backend
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file:
+      - ../environment/backend.env
+    ports:
+      - "5000:5000"
+    networks:
+      - fleet-network
+
+  yandexmaps:
+    build:
+      context: ..
+      dockerfile: docker/yandexmaps/Dockerfile.yandex
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../environment/yandex.env
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    networks:
+      - fleet-network
+
+volumes:
+  pgdata:
+
+networks:
+  fleet-network: {}
+
