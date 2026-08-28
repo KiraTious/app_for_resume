@@ -1,0 +1,17 @@
+name: Build containers
+on:
+  push:
+    branches:
+      - test
+    paths-ignore:
+      - README.md
+
+jobs:
+  Build_containers:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: build images
+        run: docker compose -f compose/docker-compose.yml build
