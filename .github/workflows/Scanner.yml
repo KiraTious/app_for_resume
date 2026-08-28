@@ -1,0 +1,35 @@
+name: Trivy scanner
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+
+jobs:
+  scanner:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Copy files
+        uses: actions/checkout@v4
+
+      - name: Build backend
+        run: docker build -f ./docker/backend/Dockerfile.backend -t backend-app .
+
+      - name: scan backend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: backend-app
+          severity: CRITICAL,HIGH
+          exit-code: 0
+      
+      - name: Build maps
+        run: docker build -f ./docker/yandexmaps/Dockerfile.yandex -t map-app .
+
+      - name: scan app image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with: 
+          image-ref: map-app
+          severity: CRITICAL,HIGH
+          exit-code: 0
