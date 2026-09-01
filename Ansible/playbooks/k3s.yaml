@@ -1,0 +1,18 @@
+---
+- name: Configure k3s master
+  hosts: master
+  become: true
+  roles:
+    - k3s_master
+
+- name: Install k3s workers
+  hosts: workers
+  become: true
+  roles:
+    - k3s_worker
+
+- name: Configure k3s registry
+  hosts: workers
+  become: true
+  roles:
+    - k3s_registry

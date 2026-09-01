@@ -1,0 +1,8 @@
+ansible_user: dragonet
+
+k3s_master_ip: 192.168.1.6
+k3s_master_port: 6443
+
+k3s_master_url: "https://{{ k3s_master_ip }}:{{ k3s_master_port }}"
+
+docker_registry_address: 192.168.1.6:12000

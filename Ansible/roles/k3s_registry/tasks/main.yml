@@ -1,0 +1,48 @@
+- name: check_node
+  ansible.builtin.wait_for:
+    host: '{{ ansible_host | default(inventory_hostname) }}'
+    port: 22
+    timeout: 10
+    connect_timeout: 5
+  register: worker_ssh_check
+  ignore_errors: true
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: skip_node_if_unreacheble
+  ansible.builtin.meta: end_host
+  when: worker_ssh_check is failed
+
+- name: create_directory_on_node
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: create_k3s_config_on_node
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/registries.yaml
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      mirrors:
+        "{{ docker_registry_address }}":
+            endpoint:
+              - "http://{{ docker_registry_address }}"
+    register: registry_config_result
+
+- name: print_result
+  ansible.builtin.debug:
+    var: registry_config_result
+  changed_when: false
+
+- name: restart_k3s_agent
+  ansible.builtin.service:
+    name: k3s-agent
+    state: restarted
+    enabled: true
+  when: registry_config_result.changed
