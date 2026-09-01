@@ -1,0 +1,23 @@
+- name: print_k3s_version
+  ansible.builtin.shell: k3s --version | awk 'NR==1 {print $3}'
+  register: k3s_version_from_master_node
+  changed_when: false
+
+- name: save_k3s_version
+  ansible.builtin.set_fact:
+    k3s_version: '{{ k3s_version_from_master_node.stdout }}'
+
+- name: check_k3s_version
+  ansible.builtin.debug:
+    var: k3s_version_from_master_node
+
+- name: select_token_from_master
+  ansible.builtin.slurp:
+    src: '{{ k3s_token_path }}'
+  register: token_from_master
+  no_log: true
+
+- name: save_token_from_master
+  ansible.builtin.set_fact:
+    k3s_node_token: '{{ token_from_master.content | b64decode | trim }}'
+  no_log: true

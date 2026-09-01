@@ -1,0 +1,60 @@
+- name: check_node
+  ansible.builtin.wait_for:
+    host: '{{ ansible_host | default(inventory_hostname) }}'
+    port: 22
+    timeout: 10
+    connect_timeout: 5
+  register: worker_ssh_check
+  ignore_errors: true
+  delegate_to: localhost
+  changed_when: false
+
+- name: skip_node_if_unreacheble
+  ansible.builtin.meta: end_host
+  when: worker_ssh_check is failed
+
+- name: check_k3s_on_worker
+  ansible.builtin.command:
+    cmd: k3s --version
+  register: k3s_result_from_node
+  failed_when: false
+  changed_when: false
+
+- name: print_k3s_from_node_if_exists
+  ansible.builtin.debug:
+    msg: 'K3S version on node: {{k3s_result_from_node.stdout}}'
+  when: k3s_result_from_node.rc == 0
+
+- name: install_k3s_if_no
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s_installer
+    mode: '0755'
+  when: k3s_result_from_node.rc != 0
+
+- name: activate_script_to_install
+  ansible.builtin.command:
+    cmd: sh /tmp/k3s_installer
+  environment:
+    INSTALL_K3S_VERSION: '{{ hostvars[k3s_master_host].k3s_version }}'
+    K3S_URL: '{{k3s_master_url}}'
+    K3S_TOKEN: '{{ hostvars[k3s_master_host].k3s_node_token }}'
+  when: k3s_result_from_node.rc != 0
+
+- name: start_k3s_on_workers
+  ansible.builtin.service:
+    name: k3s-agent
+    state: started
+    enabled: true
+
+- name: check_status_from_k3s_nodes
+  ansible.builtin.command:
+    cmd: which k3s
+  register: k3s_from_nodes
+  ignore_errors: true
+  changed_when: false
+
+- name: print_status_from_k3s_nodes
+  ansible.builtin.debug:
+    var: k3s_from_nodes
+  changed_when: false
