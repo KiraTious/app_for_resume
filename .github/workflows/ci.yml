@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - test
-    paths-ignore:
-      - README.md
+    paths:
+      - "application/**"
 
 jobs:
   Build_containers:
