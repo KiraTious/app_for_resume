@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: yandex-deployment
+  namespace: fleettracker
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: yandex
+  
+  template:
+    metadata:
+      labels:
+        app: yandex
+    
+    spec:
+      containers:
+      - name: yandexmaps
+        image: 192.168.1.6:12000/fleettracker-yandexmaps:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+        
+        envFrom:
+          - secretRef:
+              name: yandex-secret
+        
+        startupProbe:
+          tcpSocket:
+            port: 8081
+          initialDelaySeconds: 30
+          failureThreshold: 30
+          periodSeconds: 10
+
+        readinessProbe:
+          tcpSocket:
+            port: 8081
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        livenessProbe:
+          tcpSocket:
+            port: 8081
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"

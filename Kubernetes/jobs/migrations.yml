@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: backend-migrations
+  namespace: fleettracker
+
+spec:
+  backoffLimit: 3
+
+  template:
+    spec:
+      restartPolicy: Never
+
+      containers:
+      - name: migrations
+        image: 192.168.1.6:12000/fleettracker-backend:v3
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            export FLASK_APP=app.py
+            flask db upgrade
+
+        envFrom:
+          - secretRef:
+              name: backend-secret
+
+          - configMapRef:
+              name: backend-configmap

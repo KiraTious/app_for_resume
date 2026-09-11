@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-configmap
+  namespace: fleettracker
+
+data:
+  MAPS_PROXY_URL: "http://yandex-service:8081/directions"
