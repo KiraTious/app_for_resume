@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-fleettracker 
+  namespace: fleettracker
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  
+  template:
+    metadata:
+      labels:
+        app: traefik
+  
+    spec:
+      serviceAccountName: traefik-serviceaccount
+      nodeSelector:
+        ingress: "true"
+      
+      containers:
+        - name: traefik
+          image: traefik:v3.5
+          args:
+            - "--entrypoints.web.address=:80"
+            - "--providers.kubernetesingress=true"
+            - "--providers.kubernetesingress.ingressclass=traefik"
+            - "--providers.kubernetesingress.namespaces=fleettracker"
+        
+          ports:
+            - name: web
+              containerPort: 80
+              hostPort: 8080
